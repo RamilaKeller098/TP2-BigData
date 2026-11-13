@@ -21,6 +21,43 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
 
+  kafka-producer:
+    build:
+      context: ./kafka/producer
+      dockerfile: Dockerfile
+    container_name: enade-kafka-producer
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC_NAME: enade-questoes
+      KAFKA_DLQ_TOPIC_NAME: enade-questoes-dlq
+      INPUT_JSON_PATH: /app/extraction/questoes_enriquecidas.json
+      CHECKPOINT_PATH: /app/data/checkpoint.json
+    volumes:
+      - ./extraction:/app/extraction:ro
+      - producer_data:/app/data
+    restart: on-failure
+
+  kafka-consumer:
+    build:
+      context: ./kafka/consumer
+      dockerfile: Dockerfile
+    container_name: enade-kafka-consumer
+    depends_on:
+      - kafka
+      - elasticsearch
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC_NAME: enade-questoes
+      KAFKA_CONSUMER_GROUP_ID: enade-es-indexer-group
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_INDEX_NAME: enade-questoes
+      MAPPING_FILE_PATH: /app/elasticsearch/mapping.json
+    volumes:
+      - ./elasticsearch:/app/elasticsearch:ro
+    restart: on-failure
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
     container_name: enade-elasticsearch
@@ -41,7 +78,26 @@ services:
     volumes:
       - redis_data:/data
 
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: enade-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - elasticsearch
+      - redis
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_INDEX_NAME: enade-questoes
+      REDIS_URL: redis://redis:6379/0
+      CACHE_TTL_SECONDS: 300
+      CARRINHO_TTL_SECONDS: 86400
+    restart: on-failure
+
 volumes:
   kafka_data:
   elasticsearch_data:
   redis_data:
+  producer_data:
