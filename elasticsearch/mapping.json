@@ -1,0 +1,124 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "analysis": {
+      "filter": {
+        "portuguese_stop": {
+          "type": "stop",
+          "stopwords": "_brazilian_"
+        },
+        "portuguese_stemmer": {
+          "type": "stemmer",
+          "language": "brazilian"
+        },
+        "enade_synonyms": {
+          "type": "synonym",
+          "synonyms": [
+            "ética, deontologia, conduta moral",
+            "sustentabilidade, meio ambiente, preservação ambiental",
+            "inteligência artificial, ia, aprendizado de máquina, machine learning",
+            "algoritmo, lógica de programação, estrutura de dados",
+            "banco de dados, bd, sgbd, database",
+            "rede, redes de computadores, conectividade"
+          ]
+        }
+      },
+      "analyzer": {
+        "enade_pt_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "enade_synonyms",
+            "portuguese_stop",
+            "portuguese_stemmer"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "numero": {
+        "type": "integer"
+      },
+      "numero_discursiva": {
+        "type": "integer"
+      },
+      "ano": {
+        "type": "integer"
+      },
+      "curso": {
+        "type": "text",
+        "analyzer": "enade_pt_analyzer",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "area": {
+        "type": "text",
+        "analyzer": "enade_pt_analyzer",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "secao": {
+        "type": "keyword"
+      },
+      "tipo_questao": {
+        "type": "keyword"
+      },
+      "gabarito": {
+        "type": "keyword"
+      },
+      "anulada": {
+        "type": "boolean"
+      },
+      "enunciado": {
+        "type": "text",
+        "analyzer": "enade_pt_analyzer",
+        "term_vector": "with_positions_offsets"
+      },
+      "texto_completo": {
+        "type": "text",
+        "analyzer": "enade_pt_analyzer",
+        "term_vector": "with_positions_offsets"
+      },
+      "alternativas": {
+        "type": "nested",
+        "properties": {
+          "letra": {
+            "type": "keyword"
+          },
+          "texto": {
+            "type": "text",
+            "analyzer": "enade_pt_analyzer"
+          }
+        }
+      },
+      "competencias": {
+        "type": "keyword"
+      },
+      "objetos_de_conhecimento": {
+        "type": "keyword"
+      },
+      "pdf_origem": {
+        "type": "keyword"
+      },
+      "pagina_inicio": {
+        "type": "integer"
+      }
+    }
+  }
+}
+
