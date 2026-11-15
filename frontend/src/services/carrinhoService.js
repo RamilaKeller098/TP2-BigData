@@ -1,9 +1,7 @@
+import { fetchAutenticado } from './authService'
 
 const API_CARRINHO = '/api/v1/carrinho'
 const API_SIMULADOS = '/api/v1/simulados'
-
-export const PERFIL_ATUAL =
-  import.meta.env.VITE_USER_ROLE || 'Estudante'
 
 const CHAVE_SESSAO = 'enade-hub-session-id'
 
@@ -79,23 +77,14 @@ export async function limparCarrinho() {
 }
 
 export async function exportarSimulado(formato) {
-  if (PERFIL_ATUAL.trim().toLowerCase() !== 'professor') {
-    throw new Error('A exportação é exclusiva para professores.')
-  }
-
   if (!['pdf', 'json'].includes(formato)) {
     throw new Error('Formato de exportação inválido.')
   }
 
   const sessionId = obterSessionId()
 
-  const resposta = await fetch(
-    `${API_SIMULADOS}/exportar/${formato}/${encodeURIComponent(sessionId)}`,
-    {
-      headers: {
-        'X-User-Role': PERFIL_ATUAL,
-      },
-    }
+  const resposta = await fetchAutenticado(
+    `${API_SIMULADOS}/exportar/${formato}/${encodeURIComponent(sessionId)}`
   )
 
   if (!resposta.ok) {
