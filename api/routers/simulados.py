@@ -1,26 +1,15 @@
 import io
 from typing import Any, Dict, List
-from fastapi import APIRouter, Header, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse, Response
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 from api.services.redis_service import redis_service
+from api.security import Usuario, exigir_professor
 
 router = APIRouter(prefix="/api/v1/simulados", tags=["Simulados / Exportação"])
 
-
-def validar_permissao_professor(role: str):
-    """
-    - Acesso restrito a professores.
-    - Tentativa de acesso por estudante resulta obrigatoriamente em 403 (Forbidden).
-    """
-
-    if role.strip().capitalize() != "Professor":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso negado: Somente usuários com perfil 'Professor' podem exportar simulados e gabaritos.",
-        )
 
 
 # Exportar em JSON
@@ -32,9 +21,8 @@ def validar_permissao_professor(role: str):
 )
 def exportar_json(
     session_id: str = Path(..., description="ID da sessão do carrinho"),
-    x_user_role: str = Header("Estudante", alias="X-User-Role"),
+    usuario: Usuario = Depends(exigir_professor),
 ):
-    validar_permissao_professor(x_user_role)
 
     questoes = redis_service.obter_carrinho(session_id)
     if not questoes:
@@ -65,9 +53,8 @@ def exportar_json(
 def exportar_pdf(
     session_id: str = Path(..., description="ID da sessão do carrinho"),
     incluir_gabarito: bool = Query(True, description="Incluir folha de respostas ao final"),
-    x_user_role: str = Header("Estudante", alias="X-User-Role"),
+    usuario: Usuario = Depends(exigir_professor),
 ):
-    validar_permissao_professor(x_user_role)
 
     questoes = redis_service.obter_carrinho(session_id)
     if not questoes:

@@ -58,6 +58,22 @@ services:
       - ./elasticsearch:/app/elasticsearch:ro
     restart: on-failure
 
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: enade-ldap
+    command: --copy-service
+    environment:
+      LDAP_ORGANISATION: "ENADE"
+      LDAP_DOMAIN: "enade.local"
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      LDAP_TLS: "false"
+    ports:
+      - "389:389"
+    volumes:
+      - ./ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/50-bootstrap.ldif:ro
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
     container_name: enade-elasticsearch
@@ -88,12 +104,17 @@ services:
     depends_on:
       - elasticsearch
       - redis
+      - ldap
     environment:
       ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_INDEX_NAME: enade-questoes
       REDIS_URL: redis://redis:6379/0
       CACHE_TTL_SECONDS: 300
       CARRINHO_TTL_SECONDS: 86400
+      LDAP_HOST: ldap
+      LDAP_BASE_DN: dc=enade,dc=local
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
     restart: on-failure
 
 volumes:
@@ -101,3 +122,5 @@ volumes:
   elasticsearch_data:
   redis_data:
   producer_data:
+  ldap_data:
+  ldap_config:
