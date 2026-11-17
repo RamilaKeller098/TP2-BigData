@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { buscarQuestaoPorId } from '../services/questoesService'
 import { adicionarQuestao } from '../services/carrinhoService'
+import MathRenderer from '../components/MathRenderer'
 
 function DetalhesQuestao() {
   const { id } = useParams()
@@ -112,9 +113,9 @@ function DetalhesQuestao() {
 
         <div className="question-content">
           <h2>Enunciado</h2>
-          <p className="question-text">
-            {questao.enunciado || questao.texto_completo}
-          </p>
+          <div className="question-text">
+            <MathRenderer text={questao.enunciado || questao.texto_completo} />
+          </div>
         </div>
 
         {questao.alternativas?.length > 0 && (
@@ -125,14 +126,14 @@ function DetalhesQuestao() {
               {questao.alternativas.map((alternativa, indice) => (
                 <div className="alternative-item" key={indice}>
                   {typeof alternativa === 'string'
-                    ? alternativa
+                    ? <MathRenderer text={alternativa} />
                     : (
                       <>
                         <strong>
                           {alternativa.letra || alternativa.alternativa || `${indice + 1}.`}
                         </strong>
                         {' '}
-                        {alternativa.texto || alternativa.conteudo}
+                        <MathRenderer text={alternativa.texto || alternativa.conteudo} />
                       </>
                     )}
                 </div>
