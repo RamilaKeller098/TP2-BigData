@@ -7,8 +7,8 @@ import {
   removerQuestao,
   limparCarrinho,
   exportarSimulado,
-  PERFIL_ATUAL,
 } from '../services/carrinhoService'
+import { useAuth } from '../services/authService'
 
 function MeuSimulado() {
   const [questoes, setQuestoes] = useState([])
@@ -17,8 +17,7 @@ function MeuSimulado() {
   const [erro, setErro] = useState('')
   const [mensagem, setMensagem] = useState('')
 
-  const ehProfessor =
-    PERFIL_ATUAL.trim().toLowerCase() === 'professor'
+  const { ehProfessor, logado } = useAuth()
 
   async function carregarCarrinho() {
     try {
@@ -218,6 +217,12 @@ function MeuSimulado() {
               <p>
                 A exportação de simulados está disponível exclusivamente
                 para usuários com perfil de professor.
+                {!logado && (
+                  <>
+                    {' '}
+                    <Link to="/login">Entre com sua conta</Link> para continuar.
+                  </>
+                )}
               </p>
             )}
           </section>

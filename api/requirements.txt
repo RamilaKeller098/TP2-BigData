@@ -5,4 +5,5 @@ redis>=5.0.0
 pydantic>=2.8.0
 reportlab>=4.2.0
 python-dotenv>=1.0.1
-
+ldap3>=2.9.1
+PyJWT>=2.8.0

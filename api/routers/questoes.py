@@ -1,7 +1,8 @@
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from api.services.elasticsearch_service import es_service
 from api.services.redis_service import redis_service
+from api.security import Usuario, exigir_professor, usuario_opcional
 
 router = APIRouter(prefix="/api/v1/questoes", tags=["Questões"])
 
@@ -33,7 +34,7 @@ def buscar_questoes(
     competencia: Optional[str] = Query(None, description="Competência específica"),
     page: int = Query(1, ge=1, description="Número da página"),
     size: int = Query(10, ge=1, le=100, description="Quantidade por página"),
-    x_user_role: str = Header("Estudante", alias="X-User-Role", description="Perfil: 'Estudante' ou 'Professor'"),
+    usuario: Usuario = Depends(usuario_opcional),
 ):
     params_busca = {
         "q": q,
@@ -54,7 +55,7 @@ def buscar_questoes(
     if dados_cacheados:
         # sanitização de perfil
         dados_cacheados["questoes"] = [
-            sanitizar_por_perfil(q_item, x_user_role) for q_item in dados_cacheados["questoes"]
+            sanitizar_por_perfil(q_item, usuario.role) for q_item in dados_cacheados["questoes"]
         ]
         dados_cacheados["cache_hit"] = True
         return dados_cacheados
@@ -80,7 +81,7 @@ def buscar_questoes(
     redis_service.salvar_cache(chave_cache, resultado)
 
     resultado["questoes"] = [
-        sanitizar_por_perfil(q_item, x_user_role) for q_item in resultado["questoes"]
+        sanitizar_por_perfil(q_item, usuario.role) for q_item in resultado["questoes"]
     ]
     resultado["cache_hit"] = False
     return resultado
@@ -94,7 +95,7 @@ def buscar_questoes(
     description="Retorna distribuições por curso, área, tipo, seção e histograma de competências por ano.",
 )
 def obter_agregacoes(
-    x_user_role: str = Header("Estudante", alias="X-User-Role"),
+    usuario: Usuario = Depends(exigir_professor),
 ):
     chave_cache = "agregacoes:geral"
     dados_cacheados = redis_service.obter_cache(chave_cache)
@@ -123,7 +124,7 @@ def obter_agregacoes(
 )
 def obter_questao(
     questao_id: str,
-    x_user_role: str = Header("Estudante", alias="X-User-Role"),
+    usuario: Usuario = Depends(usuario_opcional),
 ):
     doc = es_service.obter_por_id(questao_id)
     if not doc:
@@ -131,5 +132,5 @@ def obter_questao(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Questão '{questao_id}' não encontrada no acervo.",
         )
-    return sanitizar_por_perfil(doc, x_user_role)
+    return sanitizar_por_perfil(doc, usuario.role)
 

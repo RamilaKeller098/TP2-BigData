@@ -1,0 +1,42 @@
+# Arvore LDAP da plataforma ENADE (base: dc=enade,dc=local)
+# Usuarios de DEMONSTRACAO. Nao use estas senhas fora do ambiente do trabalho.
+
+dn: ou=people,dc=enade,dc=local
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=enade,dc=local
+objectClass: organizationalUnit
+ou: groups
+
+dn: uid=aluno1,ou=people,dc=enade,dc=local
+objectClass: inetOrgPerson
+uid: aluno1
+cn: Aluno Um
+sn: Um
+userPassword: aluno123
+
+dn: uid=aluno2,ou=people,dc=enade,dc=local
+objectClass: inetOrgPerson
+uid: aluno2
+cn: Aluno Dois
+sn: Dois
+userPassword: aluno123
+
+dn: uid=prof1,ou=people,dc=enade,dc=local
+objectClass: inetOrgPerson
+uid: prof1
+cn: Professor Um
+sn: Um
+userPassword: prof123
+
+dn: cn=estudantes,ou=groups,dc=enade,dc=local
+objectClass: groupOfNames
+cn: estudantes
+member: uid=aluno1,ou=people,dc=enade,dc=local
+member: uid=aluno2,ou=people,dc=enade,dc=local
+
+dn: cn=professores,ou=groups,dc=enade,dc=local
+objectClass: groupOfNames
+cn: professores
+member: uid=prof1,ou=people,dc=enade,dc=local

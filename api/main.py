@@ -2,7 +2,7 @@ import logging
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from api.config import API_HOST, API_PORT
-from api.routers import carrinho, questoes, simulados
+from api.routers import auth, carrinho, questoes, simulados
 from api.services.elasticsearch_service import es_service
 from api.services.redis_service import redis_service
 
@@ -32,6 +32,7 @@ app.add_middleware(
 )
 
 # routers
+app.include_router(auth.router)
 app.include_router(questoes.router)
 app.include_router(carrinho.router)
 app.include_router(simulados.router)

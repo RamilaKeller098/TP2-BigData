@@ -1,3 +1,4 @@
+import { fetchAutenticado } from './authService'
 
 export async function buscarQuestoes(filtros = {}) {
   const parametros = new URLSearchParams()
@@ -8,13 +9,10 @@ export async function buscarQuestoes(filtros = {}) {
     }
   })
 
-  const resposta = await fetch(
+  const resposta = await fetchAutenticado(
     `/api/v1/questoes/busca?${parametros.toString()}`,
-    {
-      headers: {
-        'X-User-Role': 'Estudante',
-      },
-    }
+    {},
+    { tentarAnonimo: true }
   )
 
   if (!resposta.ok) {
@@ -25,13 +23,10 @@ export async function buscarQuestoes(filtros = {}) {
 }
 
 export async function buscarQuestaoPorId(id) {
-  const resposta = await fetch(
+  const resposta = await fetchAutenticado(
     `/api/v1/questoes/${encodeURIComponent(id)}`,
-    {
-      headers: {
-        'X-User-Role': 'Estudante',
-      },
-    }
+    {},
+    { tentarAnonimo: true }
   )
 
   if (!resposta.ok) {
