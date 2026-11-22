@@ -8,7 +8,9 @@ Campos gerados por documento:
   texto_completo, pdf_origem, pagina_inicio
 """
 
+import argparse
 import fitz
+import os
 import re
 import json
 import warnings
@@ -16,14 +18,19 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Configurações 
-BASE_DIR     = "c:/Users/cauad/OneDrive/Área de Trabalho/Conteúdos - Faculdade/BigData/TP2/TP2-BigData/extraction"
-PDF_PROVA    = f"{BASE_DIR}/2023_PV_engenharia_da_computacao.pdf"
-PDF_GABARITO = f"{BASE_DIR}/2023_GB_engenharia_da_computacao.pdf"
-OUTPUT_PATH  = f"{BASE_DIR}/questoes_enriquecidas.json"
+# Os caminhos são relativos a esta pasta. Os valores abaixo são os padrões (Eng. de Computação 2023);
+# para outro curso, use os argumentos de linha de comando (veja --help).
+BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
+PDF_PROVA    = os.path.join(BASE_DIR, "2023_PV_engenharia_da_computacao.pdf")
+PDF_GABARITO = os.path.join(BASE_DIR, "2023_GB_engenharia_da_computacao.pdf")
+OUTPUT_PATH  = os.path.join(BASE_DIR, "questoes_enriquecidas.json")
 
 ANO   = 2023
 CURSO = "Engenharia de Computação"
 AREA  = "Engenharia de Computação"
+
+# Páginas do caderno de prova que contêm questões (as seguintes são o questionário de percepção).
+MAX_PAGINAS = 38
 
 
 # 1. Gabarito 
@@ -112,6 +119,25 @@ LINHA_ALT = re.compile(r"^([A-E])[\s\t]{1,4}(.+)$")
 SEQUENCIA_ESPERADA = {"A": "B", "B": "C", "C": "D", "D": "E"}
 
 
+def _localizar_inicio_por_tras(linhas):
+    """Procura as alternativas E, D, C, B e A de trás para frente e devolve o índice da linha 'A'.
+    Evita confundir frases do enunciado que começam com 'A ' (ex.: 'A respeito dessas asserções...')
+    com a alternativa A, e funciona quando a alternativa A ocupa mais de uma linha."""
+    limite = len(linhas)
+    inicio = None
+    for letra in "EDCBA":
+        achou = None
+        for k in range(limite - 1, -1, -1):
+            m = LINHA_ALT.match(linhas[k])
+            if m and m.group(1) == letra:
+                achou = k
+                break
+        if achou is None:
+            return None
+        inicio, limite = achou, achou
+    return inicio
+
+
 def extrair_alternativas(texto_limpo):
     linhas = texto_limpo.splitlines()
 
@@ -138,8 +164,8 @@ def extrair_alternativas(texto_limpo):
             alts.append({"letra": alt_letra, "texto": " ".join(alt_texto).strip()})
         return alts
 
-    idx_inicio_alts = None
-    for i, l in enumerate(linhas):
+    idx_inicio_alts = _localizar_inicio_por_tras(linhas)
+    for i, l in (enumerate(linhas) if idx_inicio_alts is None else []):
         if ANCORAS_ALTERNATIVAS.search(l):
             for j in range(i + 1, min(i + 7, len(linhas))):
                 m = LINHA_ALT.match(linhas[j])
@@ -181,7 +207,7 @@ def extrair_questoes(pdf_path):
     padrao_ce   = re.compile(r"COMPONENTE ESPECÍF")
 
     for pagina_num, pagina in enumerate(doc, start=1):
-        if pagina_num > 38:
+        if pagina_num > MAX_PAGINAS:
             break
         linhas = pagina.get_text().splitlines()
         for linha in linhas:
@@ -272,7 +298,7 @@ def montar_documentos(questoes, gabarito):
             "enunciado": enunciado,
             "alternativas": alternativas,
             "texto_completo": texto_limpo,
-            "pdf_origem": PDF_PROVA.split("/")[-1],
+            "pdf_origem": os.path.basename(PDF_PROVA),
             "pagina_inicio": q["pagina_inicio"],
         })
 
@@ -280,7 +306,36 @@ def montar_documentos(questoes, gabarito):
 
 
 # Execução
+def salvar_sem_duplicar(documentos, caminho):
+    """Mescla no JSON existente pelo campo `id`: atualiza os que já existem e acrescenta os novos.
+    Assim dá para extrair vários cursos/anos, um por vez, sem apagar os anteriores."""
+    existentes = []
+    if os.path.exists(caminho):
+        with open(caminho, encoding="utf-8") as f:
+            existentes = json.load(f)
+    por_id = {d["id"]: d for d in existentes}
+    novos = sum(1 for d in documentos if d["id"] not in por_id)
+    for d in documentos:
+        por_id[d["id"]] = d
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(list(por_id.values()), f, ensure_ascii=False, indent=2)
+    return novos, len(por_id)
+
+
 if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description="Extrai as questões de uma prova do ENADE e mescla em questoes_enriquecidas.json")
+    ap.add_argument("--prova", default=PDF_PROVA, help="PDF do caderno de prova")
+    ap.add_argument("--gabarito", default=PDF_GABARITO, help="PDF do gabarito")
+    ap.add_argument("--ano", type=int, default=ANO)
+    ap.add_argument("--curso", default=CURSO, help='Ex.: "Engenharia Civil"')
+    ap.add_argument("--area", default=AREA, help='Área do conhecimento. Ex.: "Engenharias"')
+    ap.add_argument("--max-paginas", type=int, default=MAX_PAGINAS)
+    ap.add_argument("--saida", default=OUTPUT_PATH)
+    args = ap.parse_args()
+    PDF_PROVA, PDF_GABARITO = args.prova, args.gabarito
+    ANO, CURSO, AREA = args.ano, args.curso, args.area
+    MAX_PAGINAS, OUTPUT_PATH = args.max_paginas, args.saida
+
     print("1. Extraindo gabarito...")
     gabarito = extrair_gabarito(PDF_GABARITO)
     print(f"   {len(gabarito)} entradas no gabarito")
@@ -313,9 +368,8 @@ if __name__ == "__main__":
         num = d["numero"]
         print(f"   Q{num:02d} [{d['secao']}] gabarito={d['gabarito']} alternativas={n_alts} → {status}")
 
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(documentos, f, ensure_ascii=False, indent=2)
-    print(f"\n5. Salvo em: {OUTPUT_PATH}")
+    novos, total = salvar_sem_duplicar(documentos, OUTPUT_PATH)
+    print(f"\n5. Salvo em: {OUTPUT_PATH} ({novos} novos documentos, {total} no total)")
 
     # Exemplo de documento completo 
     q1 = next(d for d in documentos if d["numero"] == 1)
