@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { buscarQuestoes } from '../services/questoesService'
 import { adicionarQuestao } from '../services/carrinhoService'
+import MathRenderer from '../components/MathRenderer'
 
 function Buscar() {
   const [filtros, setFiltros] = useState({
@@ -152,7 +153,15 @@ function Buscar() {
                   </p>
                 </div>
 
-                <p>{questao.enunciado}</p>
+                <div className="question-excerpt">
+                  <MathRenderer
+                    text={
+                      questao.highlights?.enunciado?.[0] ||
+                      questao.highlights?.texto_completo?.[0] ||
+                      questao.enunciado
+                    }
+                  />
+                </div>
 
                 <div className="question-actions">
                   <Link

@@ -157,6 +157,17 @@ services:
       LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
     restart: on-failure
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: enade-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: on-failure
 
 volumes:
   kafka_data:
