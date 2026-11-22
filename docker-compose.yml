@@ -46,11 +46,13 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
     volumes:
       - kafka_data:/var/lib/kafka/data
       - kerberos_keytabs:/keytabs:ro
       - ./kerberos/krb5.conf:/etc/krb5.conf:ro
       - ./kerberos/kafka_server_jaas.conf:/etc/kafka/secrets/kafka_server_jaas.conf:ro
+      - ./kerberos/client.properties:/etc/kafka/secrets/client.properties:ro
 
   kafka-producer:
     build:
