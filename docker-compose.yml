@@ -1,17 +1,45 @@
 services:
 
+  kdc:
+    build:
+      context: ./kerberos
+      dockerfile: Dockerfile
+    container_name: enade-kdc
+    hostname: kdc
+    environment:
+      KRB5_MASTER_PASSWORD: ${KERBEROS_MASTER_PASSWORD}
+    volumes:
+      - ./kerberos/krb5.conf:/etc/krb5.conf:ro
+      - ./kerberos/kdc.conf:/etc/krb5kdc/kdc.conf:ro
+      - kdc_data:/var/lib/krb5kdc
+      - kerberos_keytabs:/keytabs
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /keytabs/.ready && kinit -kt /keytabs/producer.keytab producer@ENADE.LOCAL"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   kafka:
     image: apache/kafka:4.0.0
     container_name: enade-kafka
+    hostname: kafka
+    depends_on:
+      kdc:
+        condition: service_healthy
     ports:
       - "9092:9092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:29093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: SASL_PLAINTEXT://:9092,CONTROLLER://:29093
+      KAFKA_ADVERTISED_LISTENERS: SASL_PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: SASL_PLAINTEXT
+      KAFKA_SASL_ENABLED_MECHANISMS: GSSAPI
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: GSSAPI
+      KAFKA_SASL_KERBEROS_SERVICE_NAME: kafka
+      KAFKA_OPTS: "-Djava.security.krb5.conf=/etc/krb5.conf -Djava.security.auth.login.config=/etc/kafka/secrets/kafka_server_jaas.conf"
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -20,6 +48,9 @@ services:
       KAFKA_NUM_PARTITIONS: 3
     volumes:
       - kafka_data:/var/lib/kafka/data
+      - kerberos_keytabs:/keytabs:ro
+      - ./kerberos/krb5.conf:/etc/krb5.conf:ro
+      - ./kerberos/kafka_server_jaas.conf:/etc/kafka/secrets/kafka_server_jaas.conf:ro
 
   kafka-producer:
     build:
@@ -30,6 +61,9 @@ services:
       - kafka
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_KERBEROS_SERVICE_NAME: kafka
+      KRB5_CLIENT_KTNAME: /keytabs/producer.keytab
       KAFKA_TOPIC_NAME: enade-questoes
       KAFKA_DLQ_TOPIC_NAME: enade-questoes-dlq
       INPUT_JSON_PATH: /app/extraction/questoes_enriquecidas.json
@@ -37,6 +71,8 @@ services:
     volumes:
       - ./extraction:/app/extraction:ro
       - producer_data:/app/data
+      - kerberos_keytabs:/keytabs:ro
+      - ./kerberos/krb5.conf:/etc/krb5.conf:ro
     restart: on-failure
 
   kafka-consumer:
@@ -49,6 +85,9 @@ services:
       - elasticsearch
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_KERBEROS_SERVICE_NAME: kafka
+      KRB5_CLIENT_KTNAME: /keytabs/consumer.keytab
       KAFKA_TOPIC_NAME: enade-questoes
       KAFKA_CONSUMER_GROUP_ID: enade-es-indexer-group
       ELASTICSEARCH_URL: http://elasticsearch:9200
@@ -56,6 +95,8 @@ services:
       MAPPING_FILE_PATH: /app/elasticsearch/mapping.json
     volumes:
       - ./elasticsearch:/app/elasticsearch:ro
+      - kerberos_keytabs:/keytabs:ro
+      - ./kerberos/krb5.conf:/etc/krb5.conf:ro
     restart: on-failure
 
   ldap:
@@ -124,3 +165,5 @@ volumes:
   producer_data:
   ldap_data:
   ldap_config:
+  kdc_data:
+  kerberos_keytabs:
