@@ -1,15 +1,26 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { buscarQuestoes } from '../services/questoesService'
+import { buscarQuestoes, obterOpcoesFiltros } from '../services/questoesService'
 import { adicionarQuestao } from '../services/carrinhoService'
 import MathRenderer from '../components/MathRenderer'
 
 function Buscar() {
   const [filtros, setFiltros] = useState({
     q: '',
+    curso: '',
+    area: '',
     ano: '',
     tipo_questao: '',
+    secao: '',
+    competencia: '',
+  })
+
+  const [opcoes, setOpcoes] = useState({
+    cursos: [],
+    areas: [],
+    anos: [2023],
+    competencias: [],
   })
 
   const [resultado, setResultado] = useState(null)
@@ -17,6 +28,12 @@ function Buscar() {
   const [adicionandoId, setAdicionandoId] = useState(null)
   const [mensagem, setMensagem] = useState('')
   const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    obterOpcoesFiltros()
+      .then((dados) => setOpcoes((anterior) => ({ ...anterior, ...dados })))
+      .catch(() => {})
+  }, [])
 
   async function carregarQuestoes(pagina = 1) {
     try {
@@ -93,6 +110,36 @@ function Buscar() {
 
         <div className="filters">
           <div>
+            <label htmlFor="course">Curso</label>
+            <select
+              id="course"
+              name="curso"
+              value={filtros.curso}
+              onChange={atualizarFiltro}
+            >
+              <option value="">Todos os cursos</option>
+              {opcoes.cursos.map((curso) => (
+                <option key={curso} value={curso}>{curso}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="area">Área</label>
+            <select
+              id="area"
+              name="area"
+              value={filtros.area}
+              onChange={atualizarFiltro}
+            >
+              <option value="">Todas as áreas</option>
+              {opcoes.areas.map((area) => (
+                <option key={area} value={area}>{area}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label htmlFor="year">Ano</label>
             <select
               id="year"
@@ -101,7 +148,9 @@ function Buscar() {
               onChange={atualizarFiltro}
             >
               <option value="">Todos os anos</option>
-              <option value="2023">2023</option>
+              {opcoes.anos.map((ano) => (
+                <option key={ano} value={ano}>{ano}</option>
+              ))}
             </select>
           </div>
 
@@ -118,6 +167,39 @@ function Buscar() {
               <option value="discursiva">Discursiva</option>
             </select>
           </div>
+
+          <div>
+            <label htmlFor="section">Seção</label>
+            <select
+              id="section"
+              name="secao"
+              value={filtros.secao}
+              onChange={atualizarFiltro}
+            >
+              <option value="">Todas as seções</option>
+              <option value="FG">Formação Geral (FG)</option>
+              <option value="CE">Componente Específico (CE)</option>
+            </select>
+          </div>
+
+          {opcoes.competencias.length > 0 && (
+            <div>
+              <label htmlFor="competence">Competência</label>
+              <select
+                id="competence"
+                name="competencia"
+                value={filtros.competencia}
+                onChange={atualizarFiltro}
+              >
+                <option value="">Todas as competências</option>
+                {opcoes.competencias.map((competencia) => (
+                  <option key={competencia} value={competencia}>
+                    {competencia}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <button type="submit" disabled={carregando}>
             {carregando ? 'Buscando...' : 'Buscar questões'}

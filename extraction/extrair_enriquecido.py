@@ -27,7 +27,7 @@ OUTPUT_PATH  = os.path.join(BASE_DIR, "questoes_enriquecidas.json")
 
 ANO   = 2023
 CURSO = "Engenharia de Computação"
-AREA  = "Engenharia de Computação"
+AREA  = "Computação"
 
 # Páginas do caderno de prova que contêm questões (as seguintes são o questionário de percepção).
 MAX_PAGINAS = 38
@@ -70,11 +70,36 @@ CORRECOES = {
     "esti mula": "estimula", "profi ssões": "profissões",
     "identi fi cação": "identificação", "diagnósti co": "diagnóstico",
     "maléfi cas": "maléficas",
+    "noti cias": "notícias", "noti cia": "notícia",
 }
+
+# O PDF desenha "ti", "fi" e "fl" como um único glifo (ligadura) e a extração deixa um espaço depois
+# dele ("generati va", "noti fi cações", "refl exão"). Estas regras juntam as partes de volta.
+PALAVRAS_FUNCIONAIS = {
+    "de", "da", "do", "das", "dos", "e", "o", "a", "os", "as", "um", "uma", "que", "para",
+    "com", "em", "na", "no", "nas", "nos", "se", "por", "ao", "aos", "ou",
+}
+LIGADURA_NO_FIM = re.compile(r"\b([A-Za-zÀ-ÿ]+(?:ti|fi|fl))[ \t]+([a-zà-ÿ]+)\b")
+LIGADURA_SOLTA = re.compile(r"\b(ti|fi|fl)[ \t]+([a-zà-ÿ]{2,})\b")
+
+
+def corrigir_ligaduras(texto):
+    def juntar_fim(m):
+        if m.group(2) in PALAVRAS_FUNCIONAIS:
+            return m.group(0)  # provavelmente são duas palavras mesmo
+        return m.group(1) + m.group(2)
+
+    for _ in range(3):  # "arti fi cial" precisa de duas passadas
+        novo = LIGADURA_NO_FIM.sub(juntar_fim, texto)
+        if novo == texto:
+            break
+        texto = novo
+    return LIGADURA_SOLTA.sub(lambda m: m.group(1) + m.group(2), texto)
 
 def limpar_texto(texto):
     for errado, correto in CORRECOES.items():
         texto = texto.replace(errado, correto)
+    texto = corrigir_ligaduras(texto)
     linhas = [l.strip() for l in texto.splitlines()]
     filtradas = []
     i = 0

@@ -87,6 +87,7 @@ class ElasticsearchService:
             "from": (page - 1) * size,
             "size": size,
             "highlight": {
+                "encoder": "html",  # escapa HTML do texto original; só as tags <mark> do realce ficam ativas
                 "pre_tags": ["<mark>"],
                 "post_tags": ["</mark>"],
                 "fields": {
@@ -118,6 +119,37 @@ class ElasticsearchService:
             }
         except Exception as e:
             logger.error(f"Erro na busca do Elasticsearch: {e}")
+            raise e
+
+    def obter_opcoes_filtros(self) -> Dict[str, Any]:
+        """Valores distintos usados para montar os filtros da tela de busca (RF12)."""
+        query_body = {
+            "size": 0,
+            "aggs": {
+                "cursos": {"terms": {"field": "curso.keyword", "size": 200}},
+                "areas": {"terms": {"field": "area.keyword", "size": 200}},
+                "anos": {"terms": {"field": "ano", "size": 50, "order": {"_key": "desc"}}},
+                "secoes": {"terms": {"field": "secao", "size": 10}},
+                "tipos": {"terms": {"field": "tipo_questao", "size": 10}},
+                "competencias": {"terms": {"field": "competencias", "size": 200}},
+            },
+        }
+        try:
+            aggs = self.client.search(index=self.index_name, body=query_body).get("aggregations", {})
+
+            def chaves(nome: str) -> List[Any]:
+                return [b["key"] for b in aggs.get(nome, {}).get("buckets", [])]
+
+            return {
+                "cursos": sorted(chaves("cursos")),
+                "areas": sorted(chaves("areas")),
+                "anos": chaves("anos"),
+                "secoes": sorted(chaves("secoes")),
+                "tipos": sorted(chaves("tipos")),
+                "competencias": sorted(chaves("competencias")),
+            }
+        except Exception as e:
+            logger.error(f"Erro ao obter opções de filtros: {e}")
             raise e
 
     # Agregações analíticas
