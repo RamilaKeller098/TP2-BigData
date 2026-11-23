@@ -87,6 +87,30 @@ def buscar_questoes(
     return resultado
 
 
+# Opções dos filtros (valores existentes no acervo)
+
+@router.get(
+    "/filtros",
+    summary="Opções disponíveis para os filtros de busca",
+    description="Lista cursos, áreas, anos, seções, tipos e competências presentes no acervo. Rota pública.",
+)
+def listar_opcoes_filtros():
+    chave_cache = "filtros:opcoes"
+    dados_cacheados = redis_service.obter_cache(chave_cache)
+    if dados_cacheados:
+        return dados_cacheados
+
+    try:
+        dados = es_service.obter_opcoes_filtros()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao listar opções de filtros: {str(e)}",
+        )
+    redis_service.salvar_cache(chave_cache, dados, ttl=120)
+    return dados
+
+
 # Agregações analíticas
 
 @router.get(

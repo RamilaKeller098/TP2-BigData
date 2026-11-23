@@ -22,6 +22,34 @@ export async function buscarQuestoes(filtros = {}) {
   return resposta.json()
 }
 
+export async function obterOpcoesFiltros() {
+  const resposta = await fetchAutenticado(
+    '/api/v1/questoes/filtros',
+    {},
+    { tentarAnonimo: true }
+  )
+
+  if (!resposta.ok) {
+    throw new Error('Não foi possível carregar as opções de filtro.')
+  }
+
+  return resposta.json()
+}
+
+export async function obterEstatisticas() {
+  const resposta = await fetchAutenticado('/api/v1/questoes/agregacoes/estatisticas')
+
+  if (resposta.status === 403) {
+    throw new Error('Acesso negado: esta área é restrita ao perfil Professor.')
+  }
+
+  if (!resposta.ok) {
+    throw new Error('Não foi possível carregar as estatísticas.')
+  }
+
+  return resposta.json()
+}
+
 export async function buscarQuestaoPorId(id) {
   const resposta = await fetchAutenticado(
     `/api/v1/questoes/${encodeURIComponent(id)}`,

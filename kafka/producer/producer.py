@@ -79,6 +79,18 @@ def validar_questao(questao: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
+def opcoes_seguranca_kafka() -> dict:
+    """Autenticação Kerberos (SASL/GSSAPI) no Kafka, ativada por KAFKA_SECURITY_PROTOCOL (RF22)."""
+    protocolo = os.getenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
+    if protocolo == "PLAINTEXT":
+        return {}
+    return {
+        "security_protocol": protocolo,
+        "sasl_mechanism": "GSSAPI",
+        "sasl_kerberos_service_name": os.getenv("KAFKA_KERBEROS_SERVICE_NAME", "kafka"),
+    }
+
+
 # ─── Conexão Resiliente ao Kafka ──────────────────────────────────────────────
 def criar_produtor(servers: str, max_tentativas: int = 10, espera_seg: int = 3) -> KafkaProducer:
     logger.info(f"Conectando ao Kafka em: {servers}")
@@ -91,6 +103,7 @@ def criar_produtor(servers: str, max_tentativas: int = 10, espera_seg: int = 3) 
                 key_serializer=lambda k: str(k).encode("utf-8"),
                 value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode("utf-8"),
                 max_in_flight_requests_per_connection=1,  # Preserva ordenação (RF10)
+                **opcoes_seguranca_kafka(),
             )
             logger.info("Conexão com Kafka estabelecida com sucesso.")
             return produtor

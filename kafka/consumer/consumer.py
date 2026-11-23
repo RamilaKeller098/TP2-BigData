@@ -95,6 +95,18 @@ def inicializar_indice(es: Elasticsearch, nome_indice: str, caminho_mapping: str
         sys.exit(1)
 
 
+def opcoes_seguranca_kafka() -> dict:
+    """Autenticação Kerberos (SASL/GSSAPI) no Kafka, ativada por KAFKA_SECURITY_PROTOCOL (RF22)."""
+    protocolo = os.getenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
+    if protocolo == "PLAINTEXT":
+        return {}
+    return {
+        "security_protocol": protocolo,
+        "sasl_mechanism": "GSSAPI",
+        "sasl_kerberos_service_name": os.getenv("KAFKA_KERBEROS_SERVICE_NAME", "kafka"),
+    }
+
+
 # Conexão com kafka consumer
 def criar_consumidor_kafka(
     servers: str, topico: str, grupo: str, max_tentativas: int = 15, espera_seg: int = 4
@@ -111,6 +123,7 @@ def criar_consumidor_kafka(
                 consumer_timeout_ms=1000,
                 value_deserializer=lambda m: json.loads(m.decode("utf-8")),
                 key_deserializer=lambda k: k.decode("utf-8") if k else None,
+                **opcoes_seguranca_kafka(),
             )
             logger.info("Conexão com Kafka Consumer estabelecida com sucesso.")
             return consumidor

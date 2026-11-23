@@ -7,10 +7,11 @@ import Buscar from './pages/Buscar'
 import DetalhesQuestao from './pages/DetalhesQuestao'
 import MeuSimulado from './pages/MeuSimulado'
 import Login from './pages/Login'
+import Painel from './pages/Painel'
 import { sair, useAuth } from './services/authService'
 
 function App() {
-  const { logado, usuario, perfil } = useAuth()
+  const { logado, usuario, perfil, ehProfessor } = useAuth()
 
   return (
     <div className="app">
@@ -24,6 +25,7 @@ function App() {
           <NavLink to="/" end>Início</NavLink>
           <NavLink to="/buscar">Buscar questões</NavLink>
           <NavLink to="/simulado">Meu Simulado</NavLink>
+          {ehProfessor && <NavLink to="/painel">Painel</NavLink>}
 
           {logado ? (
             <div className="user-area">
@@ -43,6 +45,7 @@ function App() {
         <Route path="/buscar" element={<Buscar />} />
         <Route path="/questoes/:id" element={<DetalhesQuestao />} />
         <Route path="/simulado" element={<MeuSimulado />} />
+        <Route path="/painel" element={<Painel />} />
         <Route path="/login" element={<Login />} />
       </Routes>
 

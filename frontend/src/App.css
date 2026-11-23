@@ -1013,3 +1013,162 @@
     display: none;
   }
 }
+
+/* FILTROS DA BUSCA (RF12): grade que se adapta ao número de filtros */
+.search-card .filters {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.search-card .filters button {
+  grid-column: 1 / -1;
+  opacity: 1;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+
+.search-card .filters button:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.search-card .filters button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  color: inherit;
+  background: #fef08a;
+}
+
+/* PAGINAÇÃO */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pagination button {
+  padding: 9px 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--primary);
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pagination button:hover:not(:disabled) {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+
+.pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* PAINEL ANALÍTICO (RF15) */
+.panel-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.panel-kpi {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: white;
+}
+
+.panel-kpi span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.panel-kpi strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--primary);
+  font-size: 30px;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.panel-card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: white;
+}
+
+.panel-card h2 {
+  margin-bottom: 18px;
+  color: var(--primary);
+  font-size: 16px;
+}
+
+.bar-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar-list li {
+  display: grid;
+  grid-template-columns: minmax(110px, 38%) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.bar-label {
+  color: var(--text);
+}
+
+.bar-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eef9;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--secondary);
+}
+
+.bar-value {
+  min-width: 24px;
+  color: var(--primary);
+  font-weight: 700;
+  text-align: right;
+}
+
+.panel-empty,
+.panel-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel-note {
+  margin-top: 24px;
+}
