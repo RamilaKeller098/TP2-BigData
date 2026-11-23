@@ -84,45 +84,75 @@ Na raiz do projeto, execute:
 docker compose up -d --build
 ```
 
-### 4. Iniciar o frontend
+Esse comando inicializa todo o ecossistema distribuído: o KDC Kerberos, Apache Kafka, Elasticsearch, Redis, OpenLDAP, a API FastAPI, os workers de ingestão (Producer e Consumer) e a interface web (Frontend).
 
-Em outro terminal:
+### 4. Acessar o frontend
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+- **Via Docker (Padrão):** O frontend é compilado e servido via Nginx com proxy reverso integrado na porta 3000:
+  
+  👉 **`http://localhost:3000`**
 
-O Vite informará o endereço local para acessar a aplicação, normalmente:
+- **Modo Desenvolvimento Local (Opcional):** Caso queira executar o frontend fora do Docker com suporte a hot-reload (Vite):
+  ```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
+  A aplicação estará disponível em `http://localhost:5173`.
 
-`http://localhost:5173`
-
-### 5. Acessar a documentação da API
+### 5. Acessar a documentação da API e serviços
 
 Com os serviços ativos:
 
-- API: `http://localhost:8001`
-- Swagger: `http://localhost:8001/docs`
-- Health check: `http://localhost:8001/health`
+- **Frontend:** `http://localhost:3000`
+- **API REST:** `http://localhost:8001`
+- **Swagger / OpenAPI:** `http://localhost:8001/docs`
+- **Health check:** `http://localhost:8001/health`
 
 ## Estrutura do projeto
 
 ```text
 TP2-BigData/
-├── api/
-├── extraction/
-├── frontend/
-│   ├── public/
-│   └── src/
-│       ├── assets/
-│       ├── pages/
-│       ├── services/
-│       ├── App.jsx
-│       └── main.jsx
-├── data/
-├── docker-compose.yml
-└── README.md
+├── api/                      # Backend REST em FastAPI
+│   ├── routers/              # Rotas da API (auth, questoes, carrinho, simulados)
+│   ├── services/             # Camada de serviços (elasticsearch, redis, ldap)
+│   ├── config.py             # Configurações centrais e variáveis de ambiente
+│   ├── security.py           # Autenticação JWT e RBAC (Estudante vs Professor)
+│   ├── main.py               # Ponto de entrada FastAPI, CORS e /health
+│   ├── requirements.txt      # Dependências Python da API
+│   └── Dockerfile            # Container da API REST
+├── elasticsearch/            # Modelagem e busca
+│   └── mapping.json          # Mapping com analisador PT-BR, sinônimos, stemming e highlight
+├── extraction/               # Coleta e engenharia de dados
+│   ├── extrair_enriquecido.py# Extrator multi-curso (Eng. de Computação e Civil)
+│   ├── questoes_enriquecidas.json # Dataset estruturado e enriquecido para ingestão
+│   └── *.pdf                 # Cadernos de provas e gabaritos originais do INEP
+├── frontend/                 # Interface Web React + Vite
+│   ├── src/
+│   │   ├── components/       # Componente MathRenderer (LaTeX/KaTeX e highlight)
+│   │   ├── pages/            # Telas: Inicio, Buscar, Detalhes, Simulado, Painel, Login
+│   │   └── services/         # Clientes HTTP (authService, carrinhoService, questoesService)
+│   ├── nginx.conf            # Servidor web Nginx com proxy reverso para a API
+│   ├── package.json          # Dependências do frontend
+│   └── Dockerfile            # Multi-stage build (Node build + Nginx Alpine)
+├── kafka/                    # Mensageria distribuída
+│   ├── producer/             # Produtor resiliente com Kerberos SASL, checkpoints e DLQ
+│   └── consumer/             # Consumidor resiliente com commit manual e indexação ES
+├── kerberos/                 # Camada transversal de segurança (serviços)
+│   ├── kdc.conf, krb5.conf   # Configurações do MIT Kerberos (realm ENADE.LOCAL)
+│   ├── entrypoint.sh         # Inicialização do KDC e criação de keytabs
+│   ├── kafka_server_jaas.conf# Configuração JAAS para o broker Kafka
+│   └── Dockerfile            # Container do KDC
+├── ldap/                     # Camada transversal de segurança (usuários)
+│   └── bootstrap.ldif        # Árvore LDAP com unidades organizacionais e grupos
+├── scripts/                  # Avaliação experimental e métricas
+│   ├── benchmark_busca.py    # Teste de carga de latência (p50/p95/p99) e vazão
+│   └── resultados_busca.json # Resultados das medições (frio, quente e misto)
+├── .env.example              # Modelo das variáveis de ambiente obrigatórias
+├── .gitattributes            # Configurações de atributos e finais de linha do Git
+├── .gitignore                # Arquivos ignorados no versionamento (segredos, logs, temporários)
+├── docker-compose.yml        # Orquestrador com os 7 serviços do cluster
+└── README.md                 # Documentação e guia de execução
 ```
 
 ## Segurança
